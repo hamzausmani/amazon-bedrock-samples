@@ -2,6 +2,8 @@
 
 Bedrock Custom Model Import allows for importing foundation models that have been customized in other environments outside of Amazon Bedrock, such as Amazon Sagemaker, EC2, etc.
 
+In our example we are assuming that a model was fine tuned prior. We will be using Qwen-3 model. Similar approach can work with any model.
+
 ## Importing Model to Amazon Bedrock
 
 To import a model, model artifacts need to be uploaded in a S3 bucket. Before you upload your model weights into the bucket make sure that:
@@ -43,6 +45,45 @@ You will now be taken to the page below. Your model may take up to an hour to im
 After your model imports you will then be able to test it via the playground or API! 
 
 ![Playground](./images/playground.gif "Playground")
+
+You can also use call the model programmatically. 
+
+Below example shows a call with boto3:
+
+```python
+
+import json
+import boto3
+from botocore.config import Config
+
+REGION_NAME = 'eu-central-1'
+MODEL_ID= '' # You can use the model ARN
+
+config = Config(
+    retries={
+        'total_max_attempts': 10,
+        'mode': 'standard'
+    }
+)
+message = "Hello, what is the date today?"
+
+session = boto3.session.Session()
+br_runtime = session.client(service_name = 'bedrock-runtime', 
+                                 region_name=REGION_NAME, 
+                                 config=config)
+    
+try:
+    invoke_response = br_runtime.invoke_model(modelId=MODEL_ID, 
+                                            body=json.dumps({'prompt': message}), 
+                                            accept="application/json", 
+                                            contentType="application/json")
+    invoke_response["body"] = json.loads(invoke_response["body"].read().decode("utf-8"))
+    print(json.dumps(invoke_response, indent=4))
+except Exception as e:
+    print(e)
+    print(e.__repr__())
+```
+
 
 ## Clean Up 
 
